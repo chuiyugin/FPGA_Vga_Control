@@ -1,0 +1,293 @@
+`timescale  1ns/1ns
+
+module  vga_pic
+(
+    input   wire            vga_clk     ,   //输入工作时钟,频率25MHz
+    input   wire            sys_clk     ,   //输入RAM写时钟,频率50MHz
+    input   wire            sys_rst_n   ,   //输入复位信号,低电平有效
+    input   wire    [7:0]   pi_data     ,   //输入rx写数据
+    input   wire            pi_flag     ,   //输入rx写使能
+    input   wire    [9:0]   pix_x       ,   //输入VGA有效显示区域像素点X轴坐标
+    input   wire    [9:0]   pix_y       ,   //输入VGA有效显示区域像素点Y轴坐标
+
+    output  reg    [15:0]  pix_data_out    //输出VGA显示图像数据
+
+);
+
+//********************************************************************//
+//****************** Parameter and Internal Signal *******************//
+//********************************************************************//
+
+parameter   H_VALID =   10'd640     ,   //行有效数据
+            V_VALID =   10'd480     ;   //场有效数据
+
+parameter   H_PIC   =   10'd50     ,   //图片长度
+            W_PIC   =   10'd50     ,   //图片宽度
+            PIC_SIZE=   12'd2500   ;   //图片像素个数
+
+parameter   RED     =   16'hF800    ,   //红色
+            ORANGE  =   16'hFC00    ,   //橙色
+            YELLOW  =   16'hFFE0    ,   //黄色
+            GREEN   =   16'h07E0    ,   //绿色
+            CYAN    =   16'h07FF    ,   //青色
+            BLUE    =   16'h001F    ,   //蓝色
+            PURPPLE =   16'hF81F    ,   //紫色
+            BLACK   =   16'h0000    ,   //黑色
+            WHITE   =   16'hFFFF    ,   //白色
+            GRAY    =   16'hD69A    ;   //灰色
+
+//wire  define
+wire            rd_en       ;   //ROM读使能
+wire    [15:0]  pic_data    ;   //自ROM读出的图片数据
+
+//reg   define
+reg     [11:0]  rom_addr    ;   //读ROM地址
+reg             pic_valid   ;   //图片数据有效信号
+reg     [15:0]  pix_data    ;   //背景色彩信息
+reg     [9:0]   x_move      ;   //图片横向移动量
+reg     [9:0]   y_move      ;   //图片纵向移动量
+reg             x_flag      ;   //图片左右移动标志
+reg             y_flag      ;   //图片上下移动标志
+
+//数据内容
+reg     [7:0]    temp_1      ;
+reg     [7:0]    temp_2      ;
+reg     [7:0]    temp_3      ;
+reg     [7:0]    temp_4      ;
+reg     [7:0]    temp_5      ;
+reg     [7:0]    temp_6      ;
+reg     [7:0]    temp_7      ;
+reg     [7:0]    temp_8      ;
+
+//合成数据
+reg     [15:0]   data_1      ;
+reg     [15:0]   data_2      ;
+reg     [15:0]   data_3      ;
+reg     [15:0]   data_4      ;
+reg              my_flag     ;
+
+reg     [3:0]    cnt         ;
+
+wire     [15:0]   pix_data_out_2;
+//********************************************************************//
+//***************************** Main Code ****************************//
+//********************************************************************//
+
+//获取数据
+always@(posedge pi_flag or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        begin
+            temp_1 <= 1'b0;
+            temp_2 <= 1'b0;
+            temp_3 <= 1'b0;
+            temp_4 <= 1'b0;
+            temp_5 <= 1'b0;
+            temp_6 <= 1'b0;
+            temp_7 <= 1'b0;
+            temp_8 <= 1'b0;
+            
+            cnt    <= 1'b0;
+        end
+    else    
+        case(cnt)
+            4'd0 : 
+            begin
+                temp_1 <= pi_data;
+					 //my_flag <= pi_flag;
+                cnt <= cnt + 1'b1;
+            end
+           4'd1 : 
+            begin
+                temp_2 <= pi_data;
+					 //my_flag <= pi_flag;
+                //data_1 <= {temp_2,temp_1};
+                cnt <= cnt + 1'b1;
+            end
+            4'd2 : 
+            begin
+                temp_3 <= pi_data;
+					 //my_flag <= pi_flag;
+                cnt <= cnt + 1'b1;
+            end
+           4'd3 : 
+            begin
+                temp_4 <= pi_data;
+					 //my_flag <= pi_flag;
+                //data_2 <= {temp_4,temp_3};
+                cnt <= cnt + 1'b1;
+            end
+            4'd4 : 
+            begin
+                temp_5 <= pi_data;
+					 //my_flag <= pi_flag;
+                cnt <= cnt + 1'b1;
+            end
+           4'd5 : 
+            begin
+                temp_6 <= pi_data;
+					 //my_flag <= pi_flag;
+                //data_3 <= {temp_6,temp_5};
+                cnt <= cnt + 1'b1;
+            end
+            4'd6 : 
+            begin
+                temp_7 <= pi_data;
+					 //my_flag <= pi_flag;
+                cnt <= cnt + 1'b1;
+            end
+           4'd7 : 
+            begin
+                temp_8 <= pi_data;
+					 //my_flag <= pi_flag;
+                //data_4 <= {temp_8,temp_7};
+                cnt <= 1'b0;
+            end
+        endcase
+
+//对数据进行打一拍
+always@(posedge sys_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+		my_flag <= 1'b0;
+	 else
+		my_flag <= pi_flag;
+		  
+		  
+//打一拍后，进行数据拼接
+always@(posedge my_flag or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        begin
+				data_1 <= 1'b0;
+            data_2 <= 1'b0;
+            data_3 <= 1'b0;
+            data_4 <= 1'b0;
+		  end
+	  else
+			begin
+				data_1 <= {temp_1,temp_2};
+            data_2 <= {temp_3,temp_4};
+            data_3 <= {temp_5,temp_6};
+            data_4 <= {temp_7,temp_8};
+			end
+
+//x_flag:图片左右移动标志
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        x_flag  <=  1'b0;
+    else    if(x_move == 10'd0)
+        x_flag  <=  1'b0;
+    else    if((x_move == (H_VALID - H_PIC - 1'b1))
+            && (pix_x == (H_VALID - 1'b1))
+            && (pix_y == (V_VALID - 1'b1)))
+        x_flag  <=  1'b1;
+
+//x_move:图片横向移动量
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        x_move   <=  10'd0;
+    else    if((x_flag == 1'b0) && (pix_x == (H_VALID - 1'b1))
+                && (pix_y == (V_VALID -1'b1)))
+        x_move   <=  x_move + 1'b1;
+    else    if((x_flag == 1'b1) && (pix_x == (H_VALID - 1'b1))
+                && (pix_y == (V_VALID -1'b1)))
+        x_move   <=  x_move - 1'b1;
+
+//y_flag:图片上下移动标志
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        y_flag  <=  1'b0;
+    else    if(y_move == 0)
+        y_flag  <=  1'b0;
+    else    if((y_move == (V_VALID - W_PIC - 1'b1))
+            && (pix_x == (H_VALID - 1'b1))
+            && (pix_y == (V_VALID - 1'b1)))
+        y_flag  <=  1'b1;
+
+//y_move:图片纵向移动量
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        y_move   <=  10'd0;
+    else    if((y_flag == 1'b0) && (pix_x == (H_VALID - 1'b1))
+                && (pix_y == (V_VALID -1'b1)))
+        y_move   <=  y_move + 1'b1;
+    else    if((y_flag == 1'b1) && (pix_x == (H_VALID - 1'b1))
+                && (pix_y == (V_VALID -1'b1)))
+        y_move   <=  y_move - 1'b1;
+
+//rd_en:ROM读使能
+assign  rd_en = (((pix_x >= (x_move))
+                && (pix_x < (x_move + H_PIC))) 
+                &&((pix_y >= (y_move))
+                && ((pix_y < (y_move + W_PIC)))));
+
+//pic_valid:图片数据有效信号
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        pic_valid   <=  1'b1;
+    else
+        pic_valid   <=  rd_en;
+
+//pix_data_out_2:输出VGA显示图像数据
+assign  pix_data_out_2 = (pic_valid == 1'b1) ? pic_data : pix_data;
+
+//pix_data_out:输出VGA显示图像数据
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        pix_data_out    <= 16'd0;
+    else    if((data_1 == 0) && (data_2 == 0) && (data_3 == 0) && (data_4 == 0))
+        pix_data_out    <= pix_data_out_2;
+    else    if((pix_x >= data_4) && (pix_x < data_4+data_2) && (pix_y >= data_4) && (pix_y < data_3+data_1))
+        pix_data_out    <= pix_data_out_2;
+    else
+        pix_data_out    <= BLACK;
+
+//根据当前像素点坐标指定当前像素点颜色数据,在屏幕上显示彩条
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        pix_data    <= 16'd0;
+    else    if((pix_x >= 0) && (pix_x < (H_VALID/10)*1))
+        pix_data    <=  RED;
+    else    if((pix_x >= (H_VALID/10)*1) && (pix_x < (H_VALID/10)*2))
+        pix_data    <=  ORANGE;
+    else    if((pix_x >= (H_VALID/10)*2) && (pix_x < (H_VALID/10)*3))
+        pix_data    <=  YELLOW;
+    else    if((pix_x >= (H_VALID/10)*3) && (pix_x < (H_VALID/10)*4))
+        pix_data    <=  GREEN;
+    else    if((pix_x >= (H_VALID/10)*4) && (pix_x < (H_VALID/10)*5))
+        pix_data    <=  CYAN;
+    else    if((pix_x >= (H_VALID/10)*5) && (pix_x < (H_VALID/10)*6))
+        pix_data    <=  BLUE;
+    else    if((pix_x >= (H_VALID/10)*6) && (pix_x < (H_VALID/10)*7))
+        pix_data    <=  PURPPLE;
+    else    if((pix_x >= (H_VALID/10)*7) && (pix_x < (H_VALID/10)*8))
+        pix_data    <=  BLACK;
+    else    if((pix_x >= (H_VALID/10)*8) && (pix_x < (H_VALID/10)*9))
+        pix_data    <=  WHITE;
+    else    if((pix_x >= (H_VALID/10)*9) && (pix_x < H_VALID))
+        pix_data    <=  GRAY;
+    else
+        pix_data    <=  BLACK;
+
+//rom_addr:读ROM地址
+always@(posedge vga_clk or negedge sys_rst_n)
+    if(sys_rst_n == 1'b0)
+        rom_addr    <=  12'd0;
+    else    if(rom_addr == (PIC_SIZE - 1'b1))
+        rom_addr    <=  12'd0;
+    else    if(rd_en == 1'b1)
+        rom_addr    <=  rom_addr + 1'b1;
+
+//********************************************************************//
+//*************************** Instantiation **************************//
+//********************************************************************//
+
+//-------------rom_pic_inst-------------
+rom_pic rom_pic_inst
+(
+    .address    (rom_addr   ),  //输入读ROM地址,14bit
+    .clock      (vga_clk    ),  //输入读时钟,vga_clk,频率25MHz,1bit
+    .rden       (rd_en      ),  //输入读使能,1bit
+
+    .q          (pic_data   )   //输出读数据,16bit
+);
+
+endmodule

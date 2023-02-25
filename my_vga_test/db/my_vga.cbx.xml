@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<LOG_ROOT>
+	<PROJECT NAME="my_vga">
+		<CBX_INST_ENTRY INSTANCE_NAME="|my_vga|clk_gen:clk_gen_inst|altpll:altpll_component" CBX_FILE_NAME="clk_gen_altpll.v"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|my_vga|sdram_top:u_sdram_top|sdram_fifo_ctrl:u_sdram_fifo_ctrl|rdfifo:u_rdfifo|dcfifo:dcfifo_component" CBX_FILE_NAME="dcfifo_aol1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|my_vga|sdram_top:u_sdram_top|sdram_fifo_ctrl:u_sdram_fifo_ctrl|wrfifo:u_wrfifo|dcfifo:dcfifo_component" CBX_FILE_NAME="dcfifo_nnl1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|my_vga|vga_pic:vga_pic_inst|rom_pic:rom_pic_inst|altsyncram:altsyncram_component" CBX_FILE_NAME="altsyncram_7hb1.tdf"/>
+	</PROJECT>
+</LOG_ROOT>

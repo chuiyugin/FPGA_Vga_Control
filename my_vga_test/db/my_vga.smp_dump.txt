@@ -1,0 +1,10 @@
+
+State Machine - |my_vga|sd_ctrl_top:u_sd_ctrl_top|sd_init:u_sd_init|cur_state
+Name cur_state.st_init_done cur_state.st_send_acmd41 cur_state.st_send_cmd55 cur_state.st_send_cmd8 cur_state.st_wait_cmd0 cur_state.st_send_cmd0 cur_state.st_idle 
+cur_state.st_idle 0 0 0 0 0 0 0 
+cur_state.st_send_cmd0 0 0 0 0 0 1 1 
+cur_state.st_wait_cmd0 0 0 0 0 1 0 1 
+cur_state.st_send_cmd8 0 0 0 1 0 0 1 
+cur_state.st_send_cmd55 0 0 1 0 0 0 1 
+cur_state.st_send_acmd41 0 1 0 0 0 0 1 
+cur_state.st_init_done 1 0 0 0 0 0 1 
